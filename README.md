@@ -1,4 +1,4 @@
-# Mental Health Progress Tracker
+﻿# Mental Health Progress Tracker
 
 A simple clinician-facing dashboard built with Streamlit for tracking mood, anxiety, sleep, and energy over time.
 
@@ -9,6 +9,8 @@ A simple clinician-facing dashboard built with Streamlit for tracking mood, anxi
 - Load sample data for demonstration
 
 ## How to run locally
-```bash
 pip install -r requirements.txt
 streamlit run app.py
+
+## Purpose
+Portfolio project demonstrating the ability to build practical clinical tools that support occupational therapy and mental health practice.
