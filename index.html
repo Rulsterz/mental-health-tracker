@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mental Health Progress Tracker</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      background: #0f1117;
+      color: #e4e4e7;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    h1 { margin-bottom: 5px; color: #f4f4f5; }
+    .caption { color: #a1a1aa; font-size: 0.95rem; margin-bottom: 20px; }
+    .expander {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+    }
+    .sidebar {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 20px;
+      height: fit-content;
+    }
+    .sidebar h2 { margin-top: 0; font-size: 1.2rem; color: #f4f4f5; }
+    label { display: block; margin: 12px 0 4px; font-weight: 500; font-size: 0.9rem; color: #d4d4d8; }
+    input[type="date"], input[type="number"], textarea, input[type="range"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #3f3f46;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      background: #27272a;
+      color: #f4f4f5;
+    }
+    input[type="range"] { padding: 0; }
+    .slider-value { float: right; color: #a1a1aa; font-weight: normal; }
+    button {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-top: 15px;
+      width: 100%;
+    }
+    button:hover { background: #dc2626; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .metric {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+    .metric-label { font-size: 0.85rem; color: #a1a1aa; }
+    .metric-value { font-size: 1.8rem; font-weight: 600; margin-top: 4px; color: #f4f4f5; }
+    .chart-container { background: #18181b; border-radius: 8px; padding: 10px; margin-bottom: 20px; border: 1px solid #27272a; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #18181b;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #27272a; font-size: 0.9rem; color: #e4e4e7; }
+    th { background: #e4e4e7; color: #18181b; font-weight: 600; }
+    td { color: #d4d4d8; }
+    .success { background: #14532d; color: #bbf7d0; padding: 12px; border-radius: 6px; margin: 10px 0; }
+    .warning { background: #713f12; color: #fde68a; padding: 12px; border-radius: 6px; margin: 10px 0; }
+    .info { background: #164e63; color: #a5f3fc; padding: 12px; border-radius: 6px; margin: 10px 0; }
+    .download-btn { background: #3b82f6; width: auto; padding: 8px 16px; margin: 10px 0; }
+    hr { border: none; border-top: 1px solid #27272a; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Mental Health Progress Tracker</h1>
+    <div class="caption">A clinician-facing dashboard for monitoring mood, anxiety, sleep, energy, stress, pain, appetite, and occupational performance</div>
+
+    <div class="expander">
+      <strong>How to use this dashboard</strong>
+      <ol>
+        <li>Use the form on the left to log a new daily entry.</li>
+        <li>View trends and summary metrics on the main page.</li>
+        <li>Download the data as a CSV for records or further analysis.</li>
+      </ol>
+      <strong>Note:</strong> This is a portfolio/demo tool for educational purposes and is not a substitute for clinical assessment or treatment.
+    </div>
+
+    <div class="layout">
+      <div class="sidebar">
+        <h2>Log a New Entry</h2>
+        <form id="entryForm">
+          <label>Date</label>
+          <input type="date" id="date" required>
+          <label>Mood (1 = very low, 10 = excellent) <span class="slider-value" id="moodVal">5</span></label>
+          <input type="range" id="mood" min="1" max="10" value="5">
+          <label>Anxiety (1 = minimal, 10 = severe) <span class="slider-value" id="anxietyVal">5</span></label>
+          <input type="range" id="anxiety" min="1" max="10" value="5">
+          <label>Sleep hours</label>
+          <input type="number" id="sleep" min="0" max="24" step="0.5" value="7">
+          <label>Energy level (1–10) <span class="slider-value" id="energyVal">5</span></label>
+          <input type="range" id="energy" min="1" max="10" value="5">
+          <label>Stress (1 = minimal, 10 = severe) <span class="slider-value" id="stressVal">5</span></label>
+          <input type="range" id="stress" min="1" max="10" value="5">
+          <label>Pain (0 = none, 10 = worst) <span class="slider-value" id="painVal">0</span></label>
+          <input type="range" id="pain" min="0" max="10" value="0">
+          <label>Appetite (1 = very poor, 10 = excellent) <span class="slider-value" id="appetiteVal">5</span></label>
+          <input type="range" id="appetite" min="1" max="10" value="5">
+          <label>Occupational performance (1 = very difficult, 10 = no difficulty) <span class="slider-value" id="occVal">5</span></label>
+          <input type="range" id="occ" min="1" max="10" value="5">
+          <label>Clinical notes / observations</label>
+          <textarea id="notes" rows="3"></textarea>
+          <button type="submit">Add Entry</button>
+        </form>
+        <div id="formMessage"></div>
+      </div>
+      <div>
+        <div id="noData" class="info">No data yet. Use the form to add an entry.</div>
+        <div id="dashboard" style="display:none;">
+          <div class="metrics" id="metrics"></div>
+          <button class="download-btn" id="downloadBtn">Download data as CSV</button>
+          <button class="download-btn" id="resetBtn" style="background:#ef4444; margin-left:10px;">Reset All Data</button>
+          <div class="chart-container"><div id="chart1"></div></div>
+          <div class="chart-container"><div id="chart3"></div></div>
+          <div class="chart-container"><div id="chart2"></div></div>
+          <h3>Recent Entries & Notes</h3>
+          <div id="tableContainer"></div>
+          <div id="trendMessage"></div>
+        </div>
+      </div>
+    </div>
+    <hr style="margin: 40px 0;">
+    <div class="caption">Demo tool for educational / portfolio use. Not a substitute for clinical assessment.</div>
+  </div>
+  <script>
+    const STORAGE_KEY = "mental_health_tracker_data";
+    function loadData() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+    function setupSliders() {
+      const sliders = [
+        ["mood", "moodVal"], ["anxiety", "anxietyVal"], ["energy", "energyVal"],
+        ["stress", "stressVal"], ["pain", "painVal"], ["appetite", "appetiteVal"], ["occ", "occVal"]
+      ];
+      sliders.forEach(([id, valId]) => {
+        const slider = document.getElementById(id);
+        const display = document.getElementById(valId);
+        slider.addEventListener("input", () => display.textContent = slider.value);
+      });
+    }
+    document.getElementById("date").valueAsDate = new Date();
+    document.getElementById("entryForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const entry = {
+        date: document.getElementById("date").value,
+        mood: +document.getElementById("mood").value,
+        anxiety: +document.getElementById("anxiety").value,
+        sleep_hours: +document.getElementById("sleep").value,
+        energy: +document.getElementById("energy").value,
+        stress: +document.getElementById("stress").value,
+        pain: +document.getElementById("pain").value,
+        appetite: +document.getElementById("appetite").value,
+        occupational_performance: +document.getElementById("occ").value,
+        notes: document.getElementById("notes").value
+      };
+      const data = loadData();
+      data.push(entry);
+      saveData(data);
+      document.getElementById("formMessage").innerHTML = '<div class="success">Entry added!</div>';
+      document.getElementById("notes").value = "";
+      render();
+    });
+    function avg(arr, key) {
+      if (!arr.length) return 0;
+      return arr.reduce((sum, d) => sum + d[key], 0) / arr.length;
+    }
+    function render() {
+      const data = loadData().sort((a, b) => new Date(a.date) - new Date(b.date));
+      const noData = document.getElementById("noData");
+      const dashboard = document.getElementById("dashboard");
+      if (data.length === 0) {
+        noData.style.display = "block";
+        dashboard.style.display = "none";
+        return;
+      }
+      noData.style.display = "none";
+      dashboard.style.display = "block";
+      const metrics = [
+        ["Avg Mood", avg(data, "mood")],
+        ["Avg Anxiety", avg(data, "anxiety")],
+        ["Avg Stress", avg(data, "stress")],
+        ["Avg Pain", avg(data, "pain")],
+        ["Avg Sleep (hrs)", avg(data, "sleep_hours")],
+        ["Avg Energy", avg(data, "energy")],
+        ["Avg Appetite", avg(data, "appetite")],
+        ["Avg Occ. Performance", avg(data, "occupational_performance")]
+      ];
+      document.getElementById("metrics").innerHTML = metrics.map(([label, value]) =>
+        `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value">${value.toFixed(1)}</div></div>`
+      ).join("");
+      const dates = data.map(d => d.date);
+      Plotly.newPlot("chart1", [
+        { x: dates, y: data.map(d => d.mood), name: "Mood", mode: "lines+markers", line: { color: "#60a5fa" } },
+        { x: dates, y: data.map(d => d.anxiety), name: "Anxiety", mode: "lines+markers", line: { color: "#f87171" } },
+        { x: dates, y: data.map(d => d.stress), name: "Stress", mode: "lines+markers", line: { color: "#fbbf24" } },
+        { x: dates, y: data.map(d => d.energy), name: "Energy", mode: "lines+markers", line: { color: "#34d399" } }
+      ], {
+        title: "Mood, Anxiety, Stress & Energy",
+        paper_bgcolor: "#18181b",
+        plot_bgcolor: "#18181b",
+        font: { color: "#e4e4e7" },
+        yaxis: { title: "Score (1–10)", gridcolor: "#3f3f46" },
+        xaxis: { title: "Date", gridcolor: "#3f3f46" },
+        hovermode: "x unified"
+      }, { responsive: true });
+      Plotly.newPlot("chart3", [
+        { x: dates, y: data.map(d => d.pain), name: "Pain", mode: "lines+markers", line: { color: "#f87171" } },
+        { x: dates, y: data.map(d => d.appetite), name: "Appetite", mode: "lines+markers", line: { color: "#a78bfa" } },
+        { x: dates, y: data.map(d => d.occupational_performance), name: "Occupational Performance", mode: "lines+markers", line: { color: "#2dd4bf" } }
+      ], {
+        title: "Pain, Appetite & Occupational Performance",
+        paper_bgcolor: "#18181b",
+        plot_bgcolor: "#18181b",
+        font: { color: "#e4e4e7" },
+        yaxis: { title: "Score", gridcolor: "#3f3f46" },
+        xaxis: { title: "Date", gridcolor: "#3f3f46" },
+        hovermode: "x unified"
+      }, { responsive: true });
+      Plotly.newPlot("chart2", [
+        { x: dates, y: data.map(d => d.sleep_hours), name: "Sleep Hours", mode: "lines+markers", line: { color: "#a78bfa" } }
+      ], {
+        title: "Sleep Hours",
+        paper_bgcolor: "#18181b",
+        plot_bgcolor: "#18181b",
+        font: { color: "#e4e4e7" },
+        yaxis: { title: "Hours", gridcolor: "#3f3f46" },
+        xaxis: { title: "Date", gridcolor: "#3f3f46" }
+      }, { responsive: true });
+      const reversed = [...data].reverse();
+      let table = `<table><thead><tr>
+        <th>Date</th><th>Mood</th><th>Anxiety</th><th>Sleep</th><th>Energy</th>
+        <th>Stress</th><th>Pain</th><th>Appetite</th><th>Occ. Perf.</th><th>Notes</th>
+      </tr></thead><tbody>`;
+      reversed.forEach(d => {
+        table += `<tr>
+          <td>${d.date}</td><td>${d.mood}</td><td>${d.anxiety}</td><td>${d.sleep_hours}</td>
+          <td>${d.energy}</td><td>${d.stress}</td><td>${d.pain}</td><td>${d.appetite}</td>
+          <td>${d.occupational_performance}</td><td>${d.notes || ""}</td>
+        </tr>`;
+      });
+      table += "</tbody></table>";
+      document.getElementById("tableContainer").innerHTML = table;
+      const trendEl = document.getElementById("trendMessage");
+      if (data.length >= 3) {
+        const recent = data.slice(-3).reduce((s, d) => s + d.mood, 0) / 3;
+        const earlier = data.slice(0, 3).reduce((s, d) => s + d.mood, 0) / Math.min(3, data.length);
+        if (recent > earlier + 0.5) {
+          trendEl.innerHTML = '<div class="success">Positive trend: recent mood scores are higher than earlier ones.</div>';
+        } else if (recent < earlier - 0.5) {
+          trendEl.innerHTML = '<div class="warning">Recent mood scores are lower — consider reviewing interventions.</div>';
+        } else {
+          trendEl.innerHTML = '<div class="info">Mood scores are relatively stable.</div>';
+        }
+      } else {
+        trendEl.innerHTML = "";
+      }
+    }
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      const data = loadData();
+      if (!data.length) return;
+      const headers = ["date","mood","anxiety","sleep_hours","energy","stress","pain","appetite","occupational_performance","notes"];
+      const csv = [
+        headers.join(","),
+        ...data.map(row => headers.map(h => `"${(row[h] ?? "").toString().replace(/"/g, '""')}"`).join(","))
+      ].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mental_health_tracker.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (confirm("Are you sure you want to delete all data? This cannot be undone.")) {
+        localStorage.removeItem(STORAGE_KEY);
+        Plotly.purge("chart1");
+        Plotly.purge("chart3");
+        Plotly.purge("chart2");
+        document.getElementById("formMessage").innerHTML = '<div class="warning">All data has been reset.</div>';
+        render();
+      }
+    });
+    setupSliders();
+    render();
+  </script>
+</body>
+</html>
